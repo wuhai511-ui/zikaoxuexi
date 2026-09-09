@@ -10,7 +10,7 @@ const config: QuartzConfig = {
   configuration: {
     pageTitle: "自考 00178 · 市场调查与预测",
     pageTitleSuffix: " | 自考学习库",
-    enableSPA: true,
+    enableSPA: false,
     enablePopovers: true,
     analytics: null,
     locale: "zh-CN",
