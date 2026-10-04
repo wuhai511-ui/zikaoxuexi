@@ -153,6 +153,12 @@ function initRecall() {
     card.append(
       el("p", `${q.tags.join(" · ")} · ${q.chapter} · 真题 ${q.exams.join(" / ") || "未标注"}`),
     )
+    if (q.verificationNote) card.append(el("p", `核对说明：${q.verificationNote}`))
+    if (q.sources?.length) {
+      const sources = el("details")
+      sources.append(el("summary", "查看答案来源"), el("p", q.sources.join("；")))
+      card.append(sources)
+    }
     if (q.overlap) card.append(el("p", `重合考点 ${q.knowledgePointId}：${q.overlap}`))
     const buttons = el("div")
     buttons.className = "recall-actions"
@@ -173,9 +179,12 @@ function initRecall() {
       answer.append(
         el(
           "h3",
-          ["", "10 秒关键词", "30 秒采分点（自动提取，请结合原文核对）", "60 秒完整答案（原文）"][
-            level
-          ],
+          [
+            "",
+            "10 秒关键词",
+            q.curated ? "30 秒采分点（学习整理）" : "30 秒采分点（自动提取，请结合原文核对）",
+            q.curatedAnswer ? "60 秒完整答案（学习整理，参见来源）" : "60 秒完整答案（原文）",
+          ][level],
         ),
       )
       if (level === 1) answer.append(el("p", q.keywords))
@@ -252,7 +261,7 @@ function initRecall() {
     nav.append(prev, next)
     card.append(nav)
     root!.append(card)
-    window.scrollTo(0, y)
+    window.scrollTo({ top: y, left: 0, behavior: "instant" })
     if (focus) heading.focus({ preventScroll: true })
   }
   rebuild()
@@ -261,7 +270,7 @@ function initRecall() {
     if (position >= 0) index = position
   }
   draw()
-  requestAnimationFrame(() => window.scrollTo(0, scroll))
+  requestAnimationFrame(() => window.scrollTo({ top: scroll, left: 0, behavior: "instant" }))
   const onScroll = () => remember()
   const onStorage = (event: StorageEvent) => {
     if (event.key !== STORAGE_KEY) return

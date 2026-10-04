@@ -87,3 +87,88 @@ test("bundled essays load existing frameworks and gradual overrides keep identit
   assert.throws(() => applyOverrides(q, { missing: { answer: "x" } }))
   assert.throws(() => applyOverrides(q, { "00178-q001": { questionId: "x" } as any }))
 })
+
+import { extractPoints } from "./parser"
+test("mnemonics are excluded from automatic scoring-point extraction", () => {
+  const points = extractPoints(
+    "界定总体 → 定框架 → 定单位 → 选方法 → 定容量 → 选择样本。口诀「**总架位法量选**」（2019-04 简32）",
+  )
+  assert.equal(points.length, 6)
+  assert.ok(points[0].includes("界定总体"))
+  assert.ok(points[5].includes("选择样本"))
+  assert.ok(points.every((p) => !p.includes("总架位法量选") && !p.includes("2019-04")))
+  assert.deepEqual(extractPoints("**市场印象**＋**传播方式**。口诀「**印传**」"), [
+    "市场印象",
+    "传播方式",
+  ])
+})
+test("all 85 cards have curated outlines, sources and unchanged legacy identities", () => {
+  const questions = loadQuestions("content")
+  assert.equal(questions.length, 85)
+  assert.equal(new Set(questions.map((q) => q.knowledgePointId)).size, 75)
+  assert.ok(
+    questions.every(
+      (q) =>
+        q.curated &&
+        q.sources?.length &&
+        q.verificationNote &&
+        q.keywords.length <= 50 &&
+        q.points.length >= 3,
+    ),
+  )
+  assert.equal(questions.filter((q) => q.curatedAnswer).length, 40)
+  for (const q of questions.filter(
+    (q) => (q.sourceNumber >= 58 && q.sourceNumber <= 74) || q.sourceNumber === 76,
+  )) {
+    assert.ok(q.points.length >= 4, q.questionId)
+    assert.ok(
+      q.points.every((p) => p !== q.keywords),
+      q.questionId,
+    )
+  }
+  const byId = (id: string) => questions.find((q) => q.questionId === id)!
+  assert.equal(byId("00178-q029").knowledgePointId, byId("00178-q066").knowledgePointId)
+  assert.ok(byId("00178-q029").points.at(-1)!.startsWith("选择样本"))
+  assert.ok(byId("00178-q066").points.at(-1)!.startsWith("选择样本"))
+  assert.ok(byId("00178-q038").points[0].startsWith("明确"))
+  assert.ok(byId("00178-q067").points[0].startsWith("明确"))
+  assert.ok(byId("00178-q009").points.some((p) => p.startsWith("自然")))
+  assert.deepEqual(byId("00178-q012").points.slice(0, 4), byId("00178-q074").points.slice(0, 4))
+  assert.ok(byId("00178-q025").answer.includes("狭义"))
+  assert.ok(byId("00178-q025").answer.includes("广义"))
+  assert.ok(byId("00178-q078-3").verificationNote!.includes("附表为空白"))
+})
+test("PDF-confirmed 2022-04 numbering and answer-source lookup stay aligned", () => {
+  const source = fs.readFileSync("content/00178-市场调查与预测/02-历年真题/2022-04.md", "utf8")
+  assert.match(source, /\*\*36\.\*\* 某地有居民 400000/)
+  assert.match(source, /\*\*37\.\*\* 某村连续/)
+  assert.match(source, /\*\*38\. 请结合实际论述什么情况下适合使用抽样调查/)
+  assert.ok(source.indexOf("**37.**") < source.indexOf("**38. 请"))
+  assert.ok(
+    loadQuestions("content")
+      .find((q) => q.questionId === "00178-q078-2")!
+      .sources!.some((s) => s.includes("2022-04.md，论述38")),
+  )
+})
+test("source metadata and nonempty curated answers are validated", () => {
+  const questions = loadQuestions("content")
+  for (const patch of [
+    { points: [] },
+    { keywords: " " },
+    { answer: "" },
+    { sources: [42] },
+    { sources: [] },
+    { verificationNote: 42 },
+    null,
+  ]) {
+    assert.throws(() => applyOverrides(questions, { "00178-q001": patch as any }))
+  }
+  assert.throws(() =>
+    applyOverrides(questions, { "00178-q001": { knowledgePointId: "changed" } as any }),
+  )
+  const edited = applyOverrides(questions, {
+    "00178-q001": { sources: ["source"], verificationNote: "note" },
+  })
+  assert.deepEqual(edited[0].sources, ["source"])
+  assert.equal(edited[0].questionId, questions[0].questionId)
+})
