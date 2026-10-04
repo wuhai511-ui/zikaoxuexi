@@ -1,3 +1,4 @@
+import ActiveRecall from "./ActiveRecall"
 import { render } from "preact-render-to-string"
 import { QuartzComponent, QuartzComponentProps } from "./types"
 import BodyConstructor from "./Body"
@@ -355,7 +356,7 @@ export function renderPage(
                 componentData,
                 head: Head,
                 header,
-                beforeBody,
+                beforeBody: [...beforeBody, ActiveRecall],
                 pageBody: Content,
                 afterBody,
                 left,
