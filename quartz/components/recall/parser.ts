@@ -3,9 +3,9 @@ import { plain, Question } from "./model"
 const circled = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿"
 const groups: Record<number, [number, string]> = {
   65: [18, "观察类型重合，补录包含扩展类型"],
-  66: [29, "抽样程序重合，但步骤及末步口径不同，待核对"],
-  67: [38, "数据分析步骤重合，组织顺序不同，待核对"],
-  74: [12, "促销调查重合，补录偏广告传播，范围不同"],
+  66: [29, "与29共用抽样程序：界定总体至选择样本；原差异已作口径说明"],
+  67: [38, "与38共用基本程序；统计方法类型不替代第一步“明确目的”"],
+  74: [12, "与12共用教材五项促销内容；人员推销等作扩展解释"],
   69: [5, "调查计划书与调查方案高度重合"],
 }
 const supplementChapters: Record<number, string> = {
@@ -68,14 +68,9 @@ export function parseQuestions(markdown: string): Question[] {
     chunks.forEach((answer, j) => {
       const id = `00178-q${String(number).padStart(3, "0")}${bundle ? `-${j + 1}` : ""}`
       const kp = bundle ? bundle.knowledge[j] : (groups[number]?.[0] ?? number)
-      const bold = [...answer.matchAll(/\*\*(.+?)\*\*/gs)].map((x) => plain(x[1]))
       const mnemonic = answer.match(/「([^」]+)」/)?.[1]
+      const points = extractPoints(answer)
       const exams = [...new Set(answer.match(/20\d{2}[-–]\d{2}/g) ?? [])]
-      const points = bold.length
-        ? bold
-        : plain(answer)
-            .split(/[；。]| → | \+ /)
-            .filter(Boolean)
       questions.push({
         questionId: id,
         knowledgePointId: `00178-kp${String(kp).padStart(3, "0")}`,
@@ -103,4 +98,18 @@ export function parseQuestions(markdown: string): Question[] {
   )
     throw new Error("背诵题库结构变化，请检查稳定 ID 映射")
   return questions
+}
+
+// Mnemonics and exam references are hints, never stand-alone scoring points.
+export function extractPoints(answer: string): string[] {
+  const body = answer
+    .replace(/(?:口诀|记忆提示|背诵提示|记忆)\s*[：:]?\s*「[^」]*」[。；]?/g, "")
+    .replace(/「[^」]*」/g, "")
+    .replace(/（[^（）]*20\d{2}[^（）]*）/g, "")
+  const bold = [...body.matchAll(/\*\*(.+?)\*\*/gs)].map((x) => plain(x[1]))
+  const segments = plain(body)
+    .split(/\n|[①②③④⑤⑥⑦⑧⑨⑩]|\s*→\s*|\s*\+\s*|[；;]/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+  return bold.length ? bold : segments
 }

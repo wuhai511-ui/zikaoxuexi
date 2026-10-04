@@ -14,6 +14,10 @@ export interface Question {
   chapter: string
   keywords: string
   points: string[]
+  sources?: string[]
+  verificationNote?: string
+  curated?: boolean
+  curatedAnswer?: boolean
   answerHtml?: string
   answer: string
   tags: string[]
