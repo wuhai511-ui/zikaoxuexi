@@ -116,7 +116,7 @@ test("all 85 cards have curated outlines, sources and unchanged legacy identitie
         q.points.length >= 3,
     ),
   )
-  assert.equal(questions.filter((q) => q.curatedAnswer).length, 40)
+  assert.equal(questions.filter((q) => q.curatedAnswer).length, 42)
   for (const q of questions.filter(
     (q) => (q.sourceNumber >= 58 && q.sourceNumber <= 74) || q.sourceNumber === 76,
   )) {
@@ -171,4 +171,30 @@ test("source metadata and nonempty curated answers are validated", () => {
   })
   assert.deepEqual(edited[0].sources, ["source"])
   assert.equal(edited[0].questionId, questions[0].questionId)
+})
+
+test("2025-10 links preserve legacy IDs and progress while adding seven-step recall", () => {
+  const legacy = parseQuestions(source)
+  const current = loadQuestions("content")
+  assert.deepEqual(
+    current.map((q) => [q.questionId, q.knowledgePointId]),
+    legacy.map((q) => [q.questionId, q.knowledgePointId]),
+  )
+  const questionnaire = current.find((q) => q.questionId === "00178-q021")!
+  assert.equal(questionnaire.points.length, 8)
+  assert.ok(questionnaire.answer.includes("问卷的版面设计"))
+  assert.ok(questionnaire.exams.includes("2025-10"))
+  const hypothesis = current.find((q) => q.questionId === "00178-q041")!
+  assert.ok(hypothesis.answer.includes("−1.08"))
+  assert.ok(hypothesis.answer.includes("不拒绝"))
+  const prior = review(
+    questionnaire.questionId,
+    "known",
+    undefined,
+    new Date("2026-10-04T12:00:00Z"),
+  )
+  const stored = parseProgress(
+    JSON.stringify({ version: 1, questions: { [questionnaire.questionId]: prior } }),
+  )
+  assert.deepEqual(stored[questionnaire.questionId], prior)
 })
