@@ -71,7 +71,14 @@ export function loadQuestions(directory: string): Question[] {
   return applyOverrides(
     questions,
     fs.existsSync(overridePath) ? JSON.parse(fs.readFileSync(overridePath, "utf8")) : {},
-  )
+  ).map((q) => {
+    if (!q.sources?.some((source) => source.includes("2025-10.md"))) return q
+    return {
+      ...q,
+      exams: [...new Set([...q.exams, "2025-10"])],
+      tags: [...new Set([...q.tags, ...([21, 41].includes(q.sourceNumber) ? ["高频"] : [])])],
+    }
+  })
 }
 function expand(q: Question, answer: string): Question {
   const points = extractPoints(answer).filter(
